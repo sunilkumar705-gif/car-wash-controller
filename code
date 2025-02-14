@@ -1,0 +1,104 @@
+
+module car(
+
+ input logic clk ,
+ input logic reset ,
+ input logic start , // Start the car wash
+ output logic water_spray , // Activate water spray
+ output logic soap_spray , // Activate soap application
+ output logic rinse, // Activate rinsing
+ output logic dry , // Activate drying
+ output logic wash_complete // Indicates wash cycle is complete
+ ) ;
+ typedef enum logic [2:0] { IDLE , WATER , SOAP , RINSE , DRY , COMPLETE }
+state_t ;
+ state_t current_state , next_state ;
+
+ // State transition logic ( sequential block )
+ always_ff @ ( posedge clk or posedge reset ) begin
+ if ( reset )
+ current_state <= IDLE ;
+ else
+ current_state <= next_state ;
+ end
+
+ // State output and next - state logic ( combinational block )
+ always_comb begin
+ // Default outputs
+ water_spray = 0;
+ soap_spray = 0;
+ rinse = 0;
+ dry = 0;
+ wash_complete = 0;
+ next_state = current_state ;
+
+ case ( current_state )
+ IDLE : begin
+ if ( start ) next_state = WATER ;
+ end
+ WATER : begin
+ water_spray = 1;
+ next_state = SOAP ;
+ end
+ SOAP : begin
+ soap_spray = 1;
+ next_state = RINSE ;
+ end
+ RINSE : begin
+ rinse = 1;
+ next_state = DRY ;
+ end
+ DRY : begin
+ dry = 1;
+ next_state = COMPLETE ;
+ end
+ COMPLETE : begin
+ wash_complete = 1;
+ next_state = IDLE ; // Return to IDLE after completion
+ end
+ endcase
+ end
+ 
+endmodule
+
+
+//TESTBENCH CODE
+
+
+module tb();
+
+logic clk , reset , start ;
+logic water_spray , soap_spray , rinse , dry , wash_complete ;
+ // Instantiate the DUT
+ car dut (
+ .clk ( clk ) ,
+ .reset ( reset ) ,
+ .start ( start ) ,
+ .water_spray ( water_spray ) ,
+ .soap_spray ( soap_spray ) ,
+ .rinse ( rinse ) ,
+ .dry ( dry ) ,
+ .wash_complete ( wash_complete )
+ 
+);
+ // Clock generation
+ initial clk = 0;
+ always #5 clk = ~ clk ;
+
+ // Stimulus
+ initial begin
+ reset = 1; start = 0;
+ 
+ #10 reset = 0; // Release reset
+ #10 start = 1; // Start the car wash
+ #10 start = 0; // De - assert start
+ #100 $finish ; // End simulation
+ end
+ // Monitor the outputs
+ initial begin
+ $monitor ( $time , water_spray , soap_spray , rinse , dry ,
+wash_complete ) ;
+ end
+    
+endmodule
+
